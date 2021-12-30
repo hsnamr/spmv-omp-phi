@@ -1,7 +1,7 @@
 //
 //  sparse.c
 //  
-//  Created by Hussian Alamri on September 2012
+//  Created on September 2012
 //
 
 #include "sparse.h"
