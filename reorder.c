@@ -1,7 +1,7 @@
 //
 //  reorder.c
 //  
-//  Created by Hussian Alamri on November 2013
+//  Created by on November 2013
 //
 
 #include <stdio.h>
