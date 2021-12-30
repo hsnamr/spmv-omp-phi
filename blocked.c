@@ -1,7 +1,7 @@
 //
 //  blocked.c
 //  
-//  Created by Hussian Alamri on April 2013
+//  Created on April 2013
 //
 
 #include "blocked.h"
