@@ -27,8 +27,8 @@ make clean    # remove object files and library
 Or compile manually with an OpenMP-enabled compiler (e.g. GCC, Clang, ICC):
 
 ```bash
-gcc -fopenmp -O3 -I include -c mmio.c util.c dense.c sparse.c blocked.c reorder.c
-ar rcs libspmv.a *.o
+gcc -fopenmp -O3 -I include -c src/mmio.c src/util.c src/dense.c src/sparse.c src/blocked.c src/reorder.c
+ar rcs libspmv.a src/*.o
 ```
 
 Include the `include/` directory when compiling your code (`-I include`). Link with `-fopenmp` and the math library if needed (`-lm`).
@@ -72,12 +72,15 @@ Matrix Market (`.mtx`) files are supported via the bundled MM I/O code (see [Mat
 │   ├── reorder.h  # Column reordering (e.g. Gray code)
 │   ├── util.h     # Timing, quicksort, helpers
 │   └── mmio.h     # Matrix Market I/O
-├── sparse.c       # CRS/CCS create, multiply, destroy
-├── dense.c        # Read/write matrix, dense SpMV
-├── blocked.c      # BCRS/ELL create, multiply, destroy
-├── reorder.c      # Reordering for cache/conflict reduction
-├── util.c         # dtime(), QuickSort, findMax, etc.
-├── mmio.c         # Matrix Market implementation
+├── src/
+│   ├── sparse.c   # CRS/CCS create, multiply, destroy
+│   ├── dense.c    # Read/write matrix, dense SpMV
+│   ├── blocked.c  # BCRS/ELL create, multiply, destroy
+│   ├── reorder.c  # Reordering for cache/conflict reduction
+│   ├── util.c     # dtime(), QuickSort, findMax, etc.
+│   └── mmio.c     # Matrix Market implementation
+├── Makefile
+├── README.md
 └── LICENSE        # Public domain (Unlicense)
 ```
 
