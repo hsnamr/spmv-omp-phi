@@ -1,11 +1,12 @@
 //
-//  util.c
-//  
+//  util.c — Timing, sorting, and small helpers used by sparse/reorder.
 //  Created on September 2012
 //
 
 #include "util.h"
+#include <sys/time.h>
 
+/* Return current time in seconds (for simple wall-clock timing). */
 double dtime() {
     double tseconds = 0.0;
     struct timeval mytime;
@@ -18,6 +19,7 @@ double Random() {
     return (double)drand48();
 }
 
+/* Quicksort by key array c; permute arrays a and b accordingly (for CCS construction). */
 void QuickSort(double *a, int *b, int *c, int beg, int end) {
     
 	if (end > beg + 1) {

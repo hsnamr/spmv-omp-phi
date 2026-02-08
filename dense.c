@@ -1,12 +1,11 @@
 //
-//  dense.c
-//  
+//  dense.c — Dense MATRIX type, Matrix Market I/O, and dense SpMV.
 //  Created on September 2012
 //
 
 #include "dense.h"
 
-/* Acquired from Matrix Market http://math.nist.gov/MatrixMarket/ with few modifications */
+/* Read a sparse matrix in Matrix Market coordinate format into dense MATRIX (mel). */
 MATRIX* ReadMatrix(FILE *file) {
     MM_typecode matcode;
     int         M, N, nz, ret_code, i, j, k;
@@ -83,6 +82,7 @@ MATRIX* ReadMatrix(FILE *file) {
 	return m;
 }
 
+/* Write MATRIX to file in Matrix Market coordinate format. */
 void WriteMatrix(FILE *file, MATRIX* reM) {
     MM_typecode matcode;
     int i, jjj, k;
@@ -137,6 +137,7 @@ void WriteMatrix(FILE *file, MATRIX* reM) {
     free(val);
 }
 
+/* Parallel dot product of vectors a and b of length n. */
 double DotProduct(const double *a, const double *b, int n) {
      double result = 0.0f;
     int i;
@@ -150,26 +151,24 @@ double DotProduct(const double *a, const double *b, int n) {
 }
 
 
+/* Dense SpMV: return r = m * val. Caller must free the returned vector. */
 double* MultiplyMatrix(MATRIX *m, double *val) {
-	int          i,
-                 j,
-                 s,
-		 s1;
+	int          i, j, s;
     int nrows = m->nrows;
     int ncols = m->ncols;
-    double*  r = malloc(ncols * sizeof(double));
+    double*  r = malloc((size_t)nrows * sizeof(double));
     double**  mal = m->mel;
-    double        result;
     
-    #pragma omp parallel for private(s)
-    for (s=0; s < nrows; s++) {
+    #pragma omp parallel for
+    for (s = 0; s < nrows; s++) {
         r[s] = 0;
     }
 
-    #pragma omp parallel for default(shared) private(i, j)  reduction(+:result)
-    for (i=0; i< nrows; ++i) {
-        for (j=0; j < ncols; ++j) {
-            result += (double) (mal[i][j] * val[j]);
+    #pragma omp parallel for default(shared) private(j)
+    for (i = 0; i < nrows; ++i) {
+        double result = 0.0;
+        for (j = 0; j < ncols; ++j) {
+            result += (double)(mal[i][j] * val[j]);
         }
         r[i] = result;
     }
@@ -177,6 +176,7 @@ double* MultiplyMatrix(MATRIX *m, double *val) {
     return r;
 }
 
+/* Print dense matrix to stdout. */
 void PrintMatrix(MATRIX *m) {
     int i,
         j;
@@ -189,6 +189,7 @@ void PrintMatrix(MATRIX *m) {
     }
 }
 
+/* Free all rows and the MATRIX struct. */
 void DestroyMatrix(MATRIX *m) {
     int i;
     

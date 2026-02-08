@@ -1,13 +1,13 @@
 //
-//  blocked.c
-//  
+//  blocked.c — BCRS (block compressed row) and ELL (ELLPACK) formats and SpMV.
 //  Created on April 2013
 //
 
 #include "blocked.h"
 
-/******* BCRS functions *******/
+/******* BCRS (Block Compressed Row Storage) *******/
 
+/* Count contiguous column blocks of nonzeros per row (used for BCRS layout). */
 int countBlocks(MATRIX* my_m) {
     int i, j, nblocks = 0;
     int nrows = my_m->nrows;
@@ -29,6 +29,7 @@ int countBlocks(MATRIX* my_m) {
     return nblocks;
 }
 
+/* Build BCRS from dense matrix: rowPtr, colInd, nnzPtr, value. */
 BCRS* CreateBCRS(MATRIX* my_m) {
     int i, jj, k, index, block_number = 0;
     int nrows = my_m->nrows;
@@ -84,6 +85,7 @@ void PrintBCRS(BCRS *c) {
     printf("To-Do: Not implemented");
 }
 
+/* SpMV for BCRS: r = A * x. r length nrows, x length ncols. */
 void MultiplyBCRS(BCRS *c, double *x, double *r) {
     int          i, j, s, startCol, k, tt;
     double        temp;
@@ -124,8 +126,9 @@ void DestroyBCRS(BCRS *cc) {
 }
 
 
-/******* ELL functions *******/
+/******* ELL (ELLPACK) *******/
 
+/* Maximum number of nonzeros in any row (determines ELL column width). */
 int compute_max_entries_per_row(MATRIX* m)
 {
     int max_entries_per_row = 0;
@@ -145,6 +148,7 @@ int compute_max_entries_per_row(MATRIX* m)
     return max_entries_per_row;
 }
 
+/* Build ELL: values and indices 2D arrays; short rows padded with 0 and index -1. */
 ELL* CreateELL(MATRIX *m) {
     ELL* ell = (ELL*) malloc(sizeof(ELL));
     double** values;
@@ -202,6 +206,7 @@ void PrintELL(ELL *e) {
 }
 
 
+/* SpMV for ELL: r = A * x. Padding entries (index -1) are skipped. */
 void MultiplyELL(ELL* e, double* x, double* r) {
     int i, j;
     int **indices = e->indices;
@@ -211,14 +216,15 @@ void MultiplyELL(ELL* e, double* x, double* r) {
     double **A = e->values;
     double t;
     
-    memset(r, (int)0, ncols*sizeof(double));
+    memset(r, 0, (size_t)nrows * sizeof(double));
     
     #pragma omp parallel for default(shared) private(i, j, t)
     for (i = 0; i < nrows; ++i) {
         t = 0.0;
         #pragma ivdep
         for (j = 0; j < max_entries_per_row; ++j) {
-            t += A[i][j] * x[indices[i][j]];
+            if (indices[i][j] >= 0)  /* skip padding entries */
+                t += A[i][j] * x[indices[i][j]];
         }
         r[i] = t;
     }
@@ -227,10 +233,10 @@ void MultiplyELL(ELL* e, double* x, double* r) {
 void DestroyELL(ELL* c) {
     int i;
     
-    for (i = 0; i < m->nrows; ++i) {
-        free(m->mel[i]);
+    for (i = 0; i < c->nrows; ++i) {
+        free(c->values[i]);
+        free(c->indices[i]);
     }
-    
     free(c->values);
     free(c->indices);
     free(c);

@@ -1,13 +1,14 @@
 //
-//  sparse.c
-//  
+//  sparse.c — CRS (CSR) and CCS (CSC) sparse formats and SpMV.
+//  CRS: Compressed Row Storage; CCS: Compressed Column Storage.
 //  Created on September 2012
 //
 
 #include "sparse.h"
 
-/******* CCS functions *******/
+/******* CCS (Compressed Column Storage) *******/
 
+/* Build CCS from a dense MATRIX by first building CRS then transposing structure. */
 CCS* CreateCCS(MATRIX *m) {
     CCS *c = malloc(sizeof(CCS));
     int i, j;
@@ -51,6 +52,7 @@ CCS* CreateCCS(MATRIX *m) {
 }
 
 
+/* Print CCS arrays (values, row indices, colPtr) for debugging. */
 void PrintCCS(CCS *c) {
     int i;
 	printf("Header\n");
@@ -75,30 +77,26 @@ void PrintCCS(CCS *c) {
 
 void MultiplyCCS(CCS *c, double *v, double* r) {
 	int          i, j;
-    double        temp;
 	int*  rowInd = c->rowInd;
     int nrows = c->nrows;
 	int*  colPtr = c->colPtr;
 	int ncols = c->ncols;
     double *A = c->A;
-    int nnz = c->nnz;
-    
 
-    memset(r, (int)0, ncols*sizeof(double));
+    memset(r, 0, (size_t)nrows * sizeof(double));
     
-    #pragma omp parallel for default(shared) private(i, j, temp)
-    for (i=0; i < ncols; ++i) {
-        temp = 0.0;
+    /* For each column i, scatter A[j]*v[i] into r[rowInd[j]] (parallel over columns). */
+    #pragma omp parallel for default(shared) private(i, j)
+    for (i = 0; i < ncols; ++i) {
         #pragma ivdep
         for (j = colPtr[i]; j < colPtr[i+1]; ++j) {
             r[rowInd[j]] += (double)(A[j] * v[i]);
-              temp += (double)(A[j] * v[i]);
         }
-        r[rowInd[j]] = temp;
     }
 }
 
 
+/* Free all CCS arrays and the CCS struct. */
 void DestroyCCS(CCS *c) {
 	free(c->colPtr);
 	free(c->rowInd);
@@ -107,8 +105,9 @@ void DestroyCCS(CCS *c) {
 }
 
 
-/******* CRS functions *******/
+/******* CRS (Compressed Row Storage) *******/
 
+/* Build CRS from dense MATRIX: rowPtr, colInd, and A filled in row-major order. */
 CRS* CreateCRS(MATRIX *m) {
 	int          i, k, j, index;
     int nrows = m->nrows;
@@ -154,6 +153,7 @@ CRS* CreateCRS(MATRIX *m) {
 }
 
 
+/* Print CRS arrays (values, column indices, rowPtr) for debugging. */
 void PrintCRS(CRS *c) {
     int i;
 	printf("Header\n");
@@ -176,21 +176,21 @@ void PrintCRS(CRS *c) {
 }
 
 
+/* Compute r = A * v (SpMV). Vector r must have length nrows; v length ncols. */
 void MultiplyCRS(CRS *c, double *v, double* r) {
 	int          i, j;
-    double        temp;
 	int *rowPtr = c->rowPtr;
 	int *colInd = c->colInd;
     int nrows = c->nrows;
     int ncols = c->ncols;
     double *A = c->A;
-    int nnz = c->nnz;
     double t;
-    
-    memset(r, (int)0, ncols*sizeof(double));
-    
+
+    (void)ncols; /* used only for sizing v in practice */
+    memset(r, 0, (size_t)nrows * sizeof(double));
+
     #pragma omp parallel for default(shared) private(i, j, t)
-    for (i=0; i < nrows; ++i) {
+    for (i = 0; i < nrows; ++i) {
         t = 0.0;
         #pragma ivdep
         for (j = rowPtr[i]; j < rowPtr[i+1]; ++j) {
@@ -201,6 +201,7 @@ void MultiplyCRS(CRS *c, double *v, double* r) {
 }
 
 
+/* Free all CRS arrays and the CRS struct. */
 void DestroyCRS(CRS *c) {
 	
 	free(c->colInd);

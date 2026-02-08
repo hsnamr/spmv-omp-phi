@@ -1,7 +1,6 @@
 //
-//  reorder.c
-//  
-//  Created by on November 2013
+//  reorder.c — Column reordering (intersection-based, Gray code) for cache/conflict reduction.
+//  Created November 2013
 //
 
 #include <stdio.h>
@@ -9,12 +8,11 @@
 #include "reorder.h"
 
 int index_gc = 0;
+int P[20000] = {0};  /* Output permutation; size limits matrix to 20000 columns. */
 
-int P[20000] = {0};
-
+/* Greedy column ordering by intersection with previous column (output permutation in P). */
 void column_intersection(double** input, double** output, int nrows, int ncols) {
-    /* input: original sparse matrix - will not be modified
-     output: reordered sparse matrix */
+    /* input: original sparse matrix (not modified); output: reordered matrix (currently unused) */
     int i, ij, j, ijk, max_pos;
     int column_length = nrows;
     int row_length = ncols;
@@ -66,6 +64,7 @@ void column_intersection(double** input, double** output, int nrows, int ncols) 
     return;
 }
 
+/* Recursive Gray-code–style column permutation; fills global P and index_gc. */
 void gray_code(double** A, int* C, int rowIndex, int sign, int nrows, int ncols) {
     int ijk, jj, ii, i1, i2;
     int *C1 = (int*)malloc(ncols*sizeof(int));
